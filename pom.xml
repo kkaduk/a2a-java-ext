@@ -275,6 +275,7 @@
         <module>tck</module>
         <module>examples/helloworld</module>
         <module>tests/server-common</module>
+        <module>a2a-receptionist</module>
     </modules>
 
     <profiles>
