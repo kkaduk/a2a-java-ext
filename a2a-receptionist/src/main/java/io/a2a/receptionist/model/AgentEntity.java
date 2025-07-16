@@ -34,6 +34,7 @@ public class AgentEntity {
     @Column(name = "last_heartbeat")
     private LocalDateTime lastHeartbeat;
     
+    @Builder.Default
     @Column
     private boolean active = true;
 

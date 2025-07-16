@@ -45,6 +45,7 @@ public class AgentRegistry implements ApplicationContextAware {
         this.applicationContext = applicationContext;
     }
 
+    // Registry to hold agent metadata, temporrarily in memory
     @Getter
     private final Map<String, AgentMeta> agentRegistry = new HashMap<>();
 

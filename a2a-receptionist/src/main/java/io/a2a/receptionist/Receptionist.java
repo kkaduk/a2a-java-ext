@@ -47,9 +47,9 @@ public class Receptionist {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<List<AgentCapabilities>> findAgentsByCapability(CapabilityQuery capabilityQuery) {
+    public Mono<List<AgentSkillDocument>> findAgentsByCapability(CapabilityQuery capabilityQuery) {
         return Mono.fromSupplier(() -> {
-            List<AgentCapabilities> matchingAgents = new ArrayList<>();
+            List<AgentSkillDocument> matchingAgents = new ArrayList<>();
             List<AgentEntity> entities = agentRepository.searchByCapability(capabilityQuery);
 
             for (AgentEntity entity : entities) {
@@ -62,13 +62,12 @@ public class Receptionist {
 
                     if (!matchingSkills.isEmpty()) {
                         double confidence = calculateConfidence(matchingSkills, capabilityQuery);
-                        // Replace with the correct AgentCapabilities constructor usage
-                        matchingAgents.add(new AgentCapabilities(
-                                false, // streaming
-                                false, // pushNotifications
-                                false, // stateTransitionHistory
-                                List.of() // extensions
-                        ));
+                        if(confidence < 0.5) {
+                            log.warn("Low confidence for agent {}: {}", entity.getName(), confidence);
+                        }else {
+                            // doc.setSkills(matchingSkills);
+                            matchingAgents.add(doc);
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("Skill JSON parsing failed for {}: {}", entity.getName(), e.getMessage());
@@ -81,7 +80,7 @@ public class Receptionist {
         });
     }
 
-    public Mono<Optional<AgentCapabilities>> findBestAgentForCapability(CapabilityQuery capabilityQuery) {
+    public Mono<Optional<AgentSkillDocument>> findBestAgentForCapability(CapabilityQuery capabilityQuery) {
         return findAgentsByCapability(capabilityQuery)
                 .map(list -> list.isEmpty() ? Optional.empty() : Optional.of(list.get(0)));
     }
@@ -126,6 +125,7 @@ public class Receptionist {
                             .collect(Collectors.toList());
 
                     // Return AgentCapabilities instead of AgentCapabilityInfo
+                    //FIXME - return AgentSkills
                     return new AgentCapabilities(
                             false, // streaming
                             false, // pushNotifications
