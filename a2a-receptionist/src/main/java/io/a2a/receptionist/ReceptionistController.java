@@ -2,11 +2,15 @@
 package io.a2a.receptionist;
 
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import io.a2a.receptionist.model.A2ASkillQuery;
 import io.a2a.receptionist.model.BestAgentResponse;
-import io.a2a.receptionist.model.CapabilityDiscoveryResponse;
-import io.a2a.receptionist.model.CapabilityQuery;
+import io.a2a.receptionist.model.SkillDiscoveryResponse;
 import io.a2a.receptionist.model.SkillInvocationRequest;
 import io.a2a.receptionist.model.SkillInvocationResponse;
 import reactor.core.publisher.Mono;
@@ -31,16 +35,16 @@ public class ReceptionistController {
     @PostMapping(value = "/discover", 
                  consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<CapabilityDiscoveryResponse> discoverCapabilities(
-            @RequestBody CapabilityQuery query) {
+    public Mono<SkillDiscoveryResponse> discoverCapabilities(
+            @RequestBody A2ASkillQuery query) {
         
-        return receptionist.findAgentsByCapability(query)
-            .map(agents -> CapabilityDiscoveryResponse.builder()
+        return receptionist.findAgentsBySkills(query)
+            .map(agents -> SkillDiscoveryResponse.builder()
                 .success(true)
                 .agentCount(agents.size())
                 .agents(agents)
                 .build())
-            .onErrorReturn(CapabilityDiscoveryResponse.builder()
+            .onErrorReturn(SkillDiscoveryResponse.builder()
                 .success(false)
                 .errorMessage("Failed to discover capabilities")
                 .build());
@@ -52,9 +56,9 @@ public class ReceptionistController {
     @PostMapping(value = "/find-best", 
                  consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<BestAgentResponse> findBestAgent(@RequestBody CapabilityQuery query) {
+    public Mono<BestAgentResponse> findBestAgent(@RequestBody A2ASkillQuery query) {
         
-        return receptionist.findBestAgentForCapability(query)
+        return receptionist.findBestAgentForSkill(query)
             .map(agentOpt -> {
                 if (agentOpt.isPresent()) {
                     return BestAgentResponse.builder()
@@ -87,10 +91,10 @@ public class ReceptionistController {
      */
     @GetMapping(value = "/capabilities", 
                 produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<CapabilityDiscoveryResponse> discoverAllCapabilities() {
+    public Mono<SkillDiscoveryResponse> discoverAllCapabilities() {
         
-        return receptionist.discoverAllCapabilities()
-            .map(agents -> CapabilityDiscoveryResponse.builder()
+        return receptionist.discoverAllSkills()
+            .map(agents -> SkillDiscoveryResponse.builder()
                 .success(true)
                 .agentCount(agents.size())
                 .agents(agents)

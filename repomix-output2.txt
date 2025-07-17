@@ -1,0 +1,1705 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: a2a-receptionist/src
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+a2a-receptionist/
+  src/
+    main/
+      java/
+        io/
+          a2a/
+            receptionist/
+              model/
+                A2AAgent.java
+                A2AAgentSkill.java
+                A2ASkillQuery.java
+                AgentSkillDocument.java
+                BestAgentResponse.java
+                SkillCapability.java
+                SkillDiscoveryResponse.java
+                SkillInvocationRequest.java
+                SkillInvocationResponse.java
+              repository/
+                model/
+                  dto/
+                    A2AAgentSkillDTO.java
+                    AgentMatchDTO.java
+                    AgentMetaDTO.java
+                    AgentSkillDTO.java
+                  entity/
+                    AgentEntity.java
+                AgentRepository.java
+                AgentRepositoryCustom.java
+                AgentRepositoryImpl.java
+              service/
+                A2AWebClientConfiguration.java
+                A2AWebClientService.java
+                AgentRegistry.java
+              A2AAutoConfiguration.java
+              AgentController.java
+              Receptionist.java
+              ReceptionistController.java
+      resources/
+        application.properties
+
+================================================================
+Files
+================================================================
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/A2ASkillQuery.java
+================
+package io.a2a.receptionist.model;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * Query object for finding agents by capability.
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class A2ASkillQuery {
+    @JsonProperty("skillId")
+    private String skillId;
+
+    @JsonProperty("requiredTags")
+    private List<String> requiredTags;
+
+    @JsonProperty("keywords")
+    private List<String> keywords;
+
+    @JsonProperty("inputMode")
+    private String inputMode;
+
+    @JsonProperty("outputMode")
+    private String outputMode;
+
+    @JsonProperty("maxResults")
+    private Integer maxResults;
+
+    @JsonProperty("matchAllTags")
+    private Boolean matchAllTags; // true = AND, false = OR
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/SkillDiscoveryResponse.java
+================
+// src/main/java/net/kaduk/a2a/CapabilityDiscoveryResponse.java
+package io.a2a.receptionist.model;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SkillDiscoveryResponse {
+    @JsonProperty("success")
+    private Boolean success;
+    
+    @JsonProperty("agentCount")
+    private Integer agentCount;
+    
+    @JsonProperty("agents")
+    private List<AgentSkillDocument> agents;
+    
+    @JsonProperty("errorMessage")
+    private String errorMessage;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/model/dto/A2AAgentSkillDTO.java
+================
+package io.a2a.receptionist.repository.model.dto;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class A2AAgentSkillDTO {
+    private String id;
+    private String name;
+    private String description;
+    private List<String> tags;  
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/model/dto/AgentMatchDTO.java
+================
+package io.a2a.receptionist.repository.model.dto;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class AgentMatchDTO {
+    private String name;
+    private String url;
+    private String version;
+    private List<AgentSkillDTO> skills;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/model/dto/AgentMetaDTO.java
+================
+package io.a2a.receptionist.repository.model.dto;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class AgentMetaDTO {
+    private String agentName;
+    private List<A2AAgentSkillDTO> skills;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/model/dto/AgentSkillDTO.java
+================
+package io.a2a.receptionist.repository.model.dto;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class AgentSkillDTO {
+    private String id;
+    private String name;
+    private String description;
+    private List<String> tags;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/model/entity/AgentEntity.java
+================
+package io.a2a.receptionist.repository.model.entity;
+
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "a2a_agents")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AgentEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false, unique = true)
+    private String name;
+    
+    @Column(nullable = false)
+    private String version;
+    
+    @Column(length = 1000)
+    private String description;
+    
+    @Column(nullable = false)
+    private String url;
+    
+    @Column(name = "registered_at")
+    private LocalDateTime registeredAt;
+    
+    @Column(name = "last_heartbeat")
+    private LocalDateTime lastHeartbeat;
+    
+    @Builder.Default
+    @Column
+    private boolean active = true;
+
+    @Column(name = "skill")
+    private String skill;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/AgentRepository.java
+================
+package io.a2a.receptionist.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
+
+@Repository
+public interface AgentRepository extends JpaRepository<AgentEntity, Long> {
+    Optional<AgentEntity> findByName(String name);
+    void deleteByName(String name);
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/AgentRepositoryCustom.java
+================
+package io.a2a.receptionist.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import io.a2a.receptionist.model.A2ASkillQuery;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
+
+public interface AgentRepositoryCustom {
+    List<AgentEntity> searchByCapability(A2ASkillQuery query);
+
+    Optional<AgentEntity> findByName(String name);
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/repository/AgentRepositoryImpl.java
+================
+package io.a2a.receptionist.repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Repository;
+
+import io.a2a.receptionist.model.A2ASkillQuery;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import lombok.RequiredArgsConstructor;
+
+@Repository
+@RequiredArgsConstructor
+public class AgentRepositoryImpl implements AgentRepositoryCustom {
+
+    private final EntityManager entityManager;
+
+    @Override
+    public List<AgentEntity> searchByCapability(A2ASkillQuery query) {
+        StringBuilder sql = new StringBuilder("""
+                    SELECT * FROM a2a_agents ar
+                    WHERE 1=1
+                """);
+
+        List<String> conditions = new ArrayList<>();
+
+        // Match skill ID
+        if (query.getSkillId() != null && !query.getSkillId().isBlank()) {
+            conditions.add("""
+                        JSON_EXISTS(ar.skill, '$.skills[*]?(@.id == "%s")')
+                    """.formatted(query.getSkillId()));
+        }
+
+        // Match required tags (AND / OR)
+        if (query.getRequiredTags() != null && !query.getRequiredTags().isEmpty()) {
+            boolean matchAll = Boolean.TRUE.equals(query.getMatchAllTags()); // custom flag
+            String joiner = matchAll ? " AND " : " OR ";
+
+            String tagConditions = query.getRequiredTags().stream()
+                    .map(tag -> """
+                                JSON_EXISTS(ar.skill, '$.skills[*]?(@.tags[*] == "%s")')
+                            """.formatted(tag))
+                    .collect(Collectors.joining(joiner));
+
+            conditions.add("(" + tagConditions + ")");
+        }
+
+        // Add all conditions to SQL
+        for (String condition : conditions) {
+            sql.append(" AND ").append(condition).append("\n");
+        }
+
+        // Apply result limit
+        if (query.getMaxResults() != null && query.getMaxResults() > 0) {
+            sql.append(" FETCH FIRST ").append(query.getMaxResults()).append(" ROWS ONLY");
+        }
+
+        Query nativeQuery = entityManager.createNativeQuery(sql.toString(), AgentEntity.class);
+        return nativeQuery.getResultList();
+    }
+
+    @Override
+    public Optional<AgentEntity> findByName(String name) {
+        String sql = "SELECT * FROM a2a_agents WHERE name = :name FETCH FIRST 1 ROWS ONLY";
+        Query query = entityManager.createNativeQuery(sql, AgentEntity.class);
+        query.setParameter("name", name);
+
+        List<AgentEntity> resultList = query.getResultList();
+        return resultList.isEmpty() ? Optional.empty() : Optional.of(resultList.get(0));
+    }
+
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/A2AAutoConfiguration.java
+================
+package io.a2a.receptionist;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import io.a2a.receptionist.repository.AgentRepository;
+import io.a2a.receptionist.repository.AgentRepositoryImpl;
+import io.a2a.receptionist.service.A2AWebClientService;
+import io.a2a.receptionist.service.AgentRegistry;
+
+@Configuration
+@ComponentScan(basePackages = "io.a2a.receptionist")
+@EntityScan(basePackages = "io.a2a.receptionist")
+@EnableJpaRepositories(basePackages = "io.a2a.receptionist")
+public class A2AAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WebClient webClient() {
+        return WebClient.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public A2AWebClientService a2aWebClientService(WebClient webClient) {
+        return new A2AWebClientService(webClient);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @DependsOn("agentRepository")
+    public AgentRegistry a2aAgentRegistry(AgentRepository agentRepository) {
+        return new AgentRegistry(agentRepository);
+    }
+
+
+
+    @Bean
+    @ConditionalOnMissingBean
+    @DependsOn("a2aAgentRegistry")
+    public AgentController agentController(AgentRegistry a2aAgentRegistry) {
+        return new AgentController(a2aAgentRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @DependsOn("agentRepositoryImpl")
+    public Receptionist receptionist(AgentRepositoryImpl agentRepositoryImpl,
+            A2AWebClientService webClientService,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new Receptionist(agentRepositoryImpl, webClientService, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ReceptionistController receptionistController(Receptionist receptionist) {
+        return new ReceptionistController(receptionist);
+    }
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/AgentController.java
+================
+package io.a2a.receptionist;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.a2a.receptionist.service.AgentRegistry;
+import io.a2a.spec.AgentCapabilities;
+import io.a2a.spec.AgentCard;
+import io.a2a.spec.AgentProvider;
+import io.a2a.spec.AgentSkill;
+import io.a2a.spec.CancelTaskRequest;
+import io.a2a.spec.CancelTaskResponse;
+import io.a2a.spec.GetTaskRequest;
+import io.a2a.spec.GetTaskResponse;
+import io.a2a.spec.InternalError;
+import io.a2a.spec.Message;
+import io.a2a.spec.MessageSendParams;
+import io.a2a.spec.Part;
+import io.a2a.spec.SendMessageRequest;
+import io.a2a.spec.SendMessageResponse;
+import io.a2a.spec.SendStreamingMessageRequest;
+import io.a2a.spec.Task;
+import io.a2a.spec.TaskNotFoundError;
+import io.a2a.spec.TaskState;
+import io.a2a.spec.TaskStatus;
+import io.a2a.spec.TaskStatusUpdateEvent;
+import io.a2a.spec.TextPart;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@RestController
+@Lazy // Important: Lazy initialization to avoid circular dependency
+@Slf4j
+public class AgentController {
+
+        private final AgentRegistry agentRegistry;
+
+        // Constructor injection instead of field injection
+        public AgentController(@Lazy AgentRegistry agentRegistry) {
+                this.agentRegistry = agentRegistry;
+        }
+
+        // Simple in-memory task storage for demo
+        private final Map<String, Task> tasks = new ConcurrentHashMap<>();
+
+        @PostMapping(value = "/agent/message", consumes = MediaType.APPLICATION_JSON_VALUE)
+        public Mono<SendMessageResponse> handleSendMessage(@RequestBody SendMessageRequest request) {
+                log.info("(KK777) Received message request: {}", request);
+                return processMessage(request.getParams())
+                                .map(task -> new SendMessageResponse(request.getId(), createResponseMessage(task)))
+                                .onErrorReturn(new SendMessageResponse(request.getId(),
+                                                new InternalError("Error processing request")));
+        }
+
+        @PostMapping(value = "/agent/stream", consumes = MediaType.APPLICATION_JSON_VALUE)
+        public Flux<Object> handleStreamingMessage(@RequestBody SendStreamingMessageRequest request) {
+                return processMessage(request.getParams())
+                                .flatMapMany(task -> {
+                                        Flux<Object> statusUpdate = Flux.just(createTaskStatusUpdate(task));
+                                        Flux<Object> responseMessage = Flux.just(createResponseMessage(task));
+                                        return Flux.concat(statusUpdate, responseMessage);
+                                })
+                                .onErrorResume(error -> {
+                                        log.error("Error processing streaming message", error);
+
+                                        // Create an error task
+                                        String taskId = UUID.randomUUID().toString();
+                                        String contextId = UUID.randomUUID().toString();
+
+                                        Map<String, Object> errorMetadata = new HashMap<>();
+                                        errorMetadata.put("error",
+                                                        "Failed to process streaming request: " + error.getMessage());
+
+                                        TaskStatus errorStatus = new TaskStatus(TaskState.FAILED, null,
+                                                        LocalDateTime.now());
+                                        Task errorTask = new Task.Builder()
+                                                        .id(taskId)
+                                                        .contextId(contextId)
+                                                        .status(errorStatus)
+                                                        .metadata(errorMetadata)
+                                                        .build();
+
+                                        Flux<Object> errorStatus2 = Flux.just(createTaskStatusUpdate(errorTask));
+                                        Flux<Object> errorMessage = Flux
+                                                        .just(createErrorMessage(errorTask, error.getMessage()));
+                                        return Flux.concat(errorStatus2, errorMessage);
+                                });
+        }
+
+        private Message createErrorMessage(Task task, String errorMessage) {
+                return new Message.Builder()
+                                .role(Message.Role.AGENT)
+                                .messageId(UUID.randomUUID().toString())
+                                .contextId(task.getContextId())
+                                .taskId(task.getId())
+                                .parts(Collections.singletonList(new TextPart("Error: " + errorMessage)))
+                                .build();
+        }
+
+        @PostMapping(value = "/agent/tasks/get", consumes = MediaType.APPLICATION_JSON_VALUE)
+        public Mono<GetTaskResponse> handleGetTask(@RequestBody GetTaskRequest request) {
+                String taskId = request.getParams().id();
+                Task task = tasks.get(taskId);
+
+                if (task == null) {
+                        return Mono.just(new GetTaskResponse(request.getId(),
+                                        new TaskNotFoundError()));
+                }
+
+                return Mono.just(new GetTaskResponse(request.getId(), task));
+        }
+
+        @PostMapping(value = "/agent/tasks/cancel", consumes = MediaType.APPLICATION_JSON_VALUE)
+        public Mono<CancelTaskResponse> handleCancelTask(@RequestBody CancelTaskRequest request) {
+                String taskId = request.getParams().id();
+                Task task = tasks.get(taskId);
+
+                if (task == null) {
+                        return Mono.just(new CancelTaskResponse(request.getId(),
+                                        new TaskNotFoundError()));
+                }
+
+                // Create new task with canceled status (immutable)
+                TaskStatus canceledStatus = new TaskStatus(TaskState.CANCELED, null, LocalDateTime.now());
+                Task canceledTask = new Task.Builder(task)
+                                .status(canceledStatus)
+                                .build();
+
+                tasks.put(taskId, canceledTask);
+
+                return Mono.just(new CancelTaskResponse(request.getId(), canceledTask));
+        }
+
+        private Mono<Task> processMessage(MessageSendParams params) {
+                log.info("(KK777) Processing message: " + params);
+                if (params == null || params.message() == null) {
+                        return Mono.error(new IllegalArgumentException("Invalid message parameters"));
+                }
+
+                Message msg = params.message();
+                String skillId = msg.getTaskId();
+
+                // Create or find task
+                String taskId = msg.getTaskId() != null ? msg.getTaskId() : UUID.randomUUID().toString();
+                Task task = tasks.computeIfAbsent(taskId, id -> new Task.Builder()
+                                .id(id)
+                                .contextId(msg.getContextId() != null ? msg.getContextId()
+                                                : UUID.randomUUID().toString())
+                                .status(new TaskStatus(TaskState.WORKING, null, LocalDateTime.now()))
+                                .history(new ArrayList<>())
+                                .build());
+
+                // Extract input from message parts
+                String input = extractInputFromMessage(msg);
+
+                // Find and execute skill
+                Map<String, AgentRegistry.AgentMeta> agents = agentRegistry.getAgentRegistry();
+                log.info("(KK777) expecting skill for agent: " + agents.entrySet().toString() + " for skill: "
+                                + skillId);
+                for (AgentRegistry.AgentMeta agent : agents.values()) {
+                        Optional<AgentRegistry.SkillMeta> skillOpt = agent.getSkills().stream()
+                                        .filter(meta -> meta.getId().equals(skillId))
+                                        .findFirst();
+
+                        if (skillOpt.isPresent()) {
+                                log.info("(KK777) Found skill: " + skillId + " in agent: " + agent.getName());
+                                try {
+                                        AgentRegistry.SkillMeta skill = skillOpt.get();
+                                        Object result;
+
+                                        // Handle different parameter types
+                                        Class<?>[] paramTypes = skill.getMethod().getParameterTypes();
+                                        if (paramTypes.length == 0) {
+                                                result = skill.getMethod().invoke(agent.getBean());
+                                                log.info("(KK888-EX-1) Skill " + skillId + " executed with result: "
+                                                                + result);
+                                        } else if (paramTypes.length == 1) {
+                                                result = skill.getMethod().invoke(agent.getBean(), input);
+                                                if (result instanceof CompletableFuture) {
+                                                        result = ((CompletableFuture<?>) result).get(); // Blocking wait
+                                                }
+                                                log.info("(KK888-EX-2) Skill " + skillId + " executed with result: "
+                                                                + result);
+                                        } else {
+                                                // For multiple parameters, you might need more sophisticated parameter
+                                                // mapping
+                                                result = skill.getMethod().invoke(agent.getBean(), input);
+                                                log.info(input + " (KK888-EX-3) MP Skill " + skillId
+                                                                + " executed with result: " + result);
+                                        }
+
+                                        // Create new task with result (immutable)
+                                        Map<String, Object> metadata = new HashMap<>();
+                                        if (task.getMetadata() != null) {
+                                                metadata.putAll(task.getMetadata());
+                                        }
+
+                                        log.info("(KK888) Skill " + skillId + " executed with result: "
+                                                        + result.toString());
+                                        metadata.put("result", result != null ? result.toString() : "null");
+
+                                        // Update task status
+                                        TaskStatus completedStatus = new TaskStatus(TaskState.COMPLETED, null,
+                                                        LocalDateTime.now());
+                                        Task completedTask = new Task.Builder(task)
+                                                        .status(completedStatus)
+                                                        .metadata(metadata)
+                                                        .build();
+
+                                        tasks.put(taskId, completedTask);
+                                        log.info("(KK999) Skill " + skillId + " executed successfully with result: "
+                                                        + completedTask.getMetadata().get("result"));
+                                        return Mono.just(completedTask);
+                                } catch (Exception e) {
+                                        System.err.println("Error executing skill " + skillId + ": " + e.getMessage());
+
+                                        Map<String, Object> metadata = new HashMap<>();
+                                        if (task.getMetadata() != null) {
+                                                metadata.putAll(task.getMetadata());
+                                        }
+                                        metadata.put("error", e.getMessage());
+
+                                        TaskStatus failedStatus = new TaskStatus(TaskState.FAILED, null,
+                                                        LocalDateTime.now());
+                                        Task failedTask = new Task.Builder(task)
+                                                        .status(failedStatus)
+                                                        .metadata(metadata)
+                                                        .build();
+
+                                        tasks.put(taskId, failedTask);
+                                        return Mono.just(failedTask);
+                                }
+                        }
+                }
+
+                Map<String, Object> metadata = new HashMap<>();
+                if (task.getMetadata() != null) {
+                        metadata.putAll(task.getMetadata());
+                }
+                metadata.put("error", "Skill not found: " + skillId);
+
+                TaskStatus rejectedStatus = new TaskStatus(TaskState.REJECTED, null, LocalDateTime.now());
+                Task rejectedTask = new Task.Builder(task)
+                                .status(rejectedStatus)
+                                .metadata(metadata)
+                                .build();
+
+                tasks.put(taskId, rejectedTask);
+                return Mono.just(rejectedTask);
+        }
+
+        private String extractInputFromMessage(Message msg) {
+                if (msg.getParts() != null && !msg.getParts().isEmpty()) {
+                        Part<?> firstPart = msg.getParts().get(0);
+                        if (firstPart instanceof TextPart) {
+                                return ((TextPart) firstPart).getText();
+                        }
+                }
+                return "";
+        }
+
+        private Message createResponseMessage(Task task) {
+                String resultText = "Task completed";
+                if (task.getMetadata() != null) {
+                        Object result = task.getMetadata().get("result");
+                        if (result != null) {
+                                resultText = result.toString();
+                        }
+                        Object error = task.getMetadata().get("error");
+                        if (error != null) {
+                                resultText = "Error: " + error.toString();
+                        }
+                }
+
+                return new Message.Builder()
+                                .role(Message.Role.AGENT)
+                                .messageId(UUID.randomUUID().toString())
+                                .contextId(task.getContextId())
+                                .taskId(task.getId())
+                                .parts(Collections.singletonList(new TextPart(resultText)))
+                                .build();
+        }
+
+        private TaskStatusUpdateEvent createTaskStatusUpdate(Task task) {
+                boolean isFinal = task.getStatus().state() == TaskState.COMPLETED ||
+                                task.getStatus().state() == TaskState.FAILED ||
+                                task.getStatus().state() == TaskState.CANCELED;
+
+                return new TaskStatusUpdateEvent.Builder()
+                                .taskId(task.getId())
+                                .contextId(task.getContextId())
+                                .status(task.getStatus())
+                                .isFinal(isFinal)
+                                .build();
+        }
+
+        @GetMapping(value = "/agent/card", produces = MediaType.APPLICATION_JSON_VALUE)
+        public Mono<AgentCard> getAgentCard() {
+                List<AgentRegistry.AgentMeta> agents = new ArrayList<>(agentRegistry.getAgentRegistry().values());
+
+                if (agents.isEmpty()) {
+                        return Mono.just(createDefaultAgentCard());
+                }
+
+                AgentRegistry.AgentMeta primaryAgent = agents.get(0);
+                List<AgentSkill> allSkills = agents.stream()
+                                .flatMap(agent -> agent.getSkills().stream().map(this::convertToAgentSkill))
+                                .collect(Collectors.toList());
+
+                AgentCard card = new AgentCard.Builder()
+                                .name(primaryAgent.getName())
+                                .version(primaryAgent.getVersion())
+                                .description(primaryAgent.getDescription())
+                                .url(primaryAgent.getUrl())
+                                .skills(allSkills)
+                                .defaultInputModes(Collections.singletonList("text"))
+                                .defaultOutputModes(Collections.singletonList("text"))
+                                .capabilities(createDefaultCapabilities())
+                                .provider(createDefaultProvider())
+                                .build();
+
+                return Mono.just(card);
+        }
+
+        private AgentSkill convertToAgentSkill(AgentRegistry.SkillMeta skillMeta) {
+                return new AgentSkill.Builder()
+                                .id(skillMeta.getId())
+                                .name(skillMeta.getName())
+                                .description(skillMeta.getDescription())
+                                .tags(Arrays.asList(skillMeta.getTags()))
+                                .build();
+        }
+
+        private AgentCard createDefaultAgentCard() {
+                return new AgentCard.Builder()
+                                .name("A2A Agent")
+                                .version("1.0")
+                                .description("A2A Protocol Agent")
+                                .url("http://localhost:8080")
+                                .skills(Collections.emptyList())
+                                .defaultInputModes(Collections.singletonList("text"))
+                                .defaultOutputModes(Collections.singletonList("text"))
+                                .capabilities(createDefaultCapabilities())
+                                .provider(createDefaultProvider())
+                                .build();
+        }
+
+        private AgentCapabilities createDefaultCapabilities() {
+                return new AgentCapabilities.Builder()
+                                .streaming(true)
+                                .pushNotifications(false)
+                                .stateTransitionHistory(true)
+                                .build();
+        }
+
+        private AgentProvider createDefaultProvider() {
+                return new AgentProvider("A2A System", "http://localhost:8080");
+        }
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/A2AAgent.java
+================
+package io.a2a.receptionist.model;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface A2AAgent {
+    String name();
+    String version();
+    String description() default "";
+    String url() default "http://localhost:8080";
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/A2AAgentSkill.java
+================
+package io.a2a.receptionist.model;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface A2AAgentSkill {
+    String id();
+    String name();
+    String description() default "";
+    String[] tags() default {};
+    String[] examples() default {};
+    String[] inputModes() default {};
+    String[] outputModes() default {};
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/AgentSkillDocument.java
+================
+package io.a2a.receptionist.model;
+
+import java.util.List;
+
+import io.a2a.receptionist.repository.model.dto.AgentSkillDTO;
+import lombok.Data;
+
+@Data
+public class AgentSkillDocument {
+    private String agentName;
+    private List<AgentSkillDTO> skills;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/BestAgentResponse.java
+================
+package io.a2a.receptionist.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class BestAgentResponse {
+    @JsonProperty("success")
+    private Boolean success;
+    
+    @JsonProperty("agent")
+    private AgentSkillDocument agent;
+    
+    @JsonProperty("errorMessage")
+    private String errorMessage;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/SkillCapability.java
+================
+package io.a2a.receptionist.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+
+import java.util.List;
+
+/**
+ * Detailed information about a specific skill capability.
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SkillCapability {
+    @JsonProperty("skillId")
+    private String skillId;
+    
+    @JsonProperty("skillName")
+    private String skillName;
+    
+    @JsonProperty("description")
+    private String description;
+    
+    @JsonProperty("tags")
+    private List<String> tags;
+    
+    @JsonProperty("inputModes")
+    private List<String> inputModes;
+    
+    @JsonProperty("outputModes")
+    private List<String> outputModes;
+    
+    @JsonProperty("examples")
+    private List<String> examples;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/SkillInvocationRequest.java
+================
+package io.a2a.receptionist.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+
+import java.util.Map;
+
+/**
+ * Request to invoke a specific skill on an agent.
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SkillInvocationRequest {
+    @JsonProperty("agentName")
+    private String agentName;
+    
+    @JsonProperty("skillId")
+    private String skillId;
+    
+    @JsonProperty("input")
+    private String input;
+    
+    @JsonProperty("metadata")
+    private Map<String, Object> metadata;
+    
+    @JsonProperty("contextId")
+    private String contextId;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/model/SkillInvocationResponse.java
+================
+package io.a2a.receptionist.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.a2a.spec.Message;
+import lombok.*;
+
+/**
+ * Response from a skill invocation.
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SkillInvocationResponse {
+    @JsonProperty("success")
+    private Boolean success;
+    
+    @JsonProperty("result")
+    private Message result;
+    
+    @JsonProperty("taskId")
+    private String taskId;
+    
+    @JsonProperty("errorMessage")
+    private String errorMessage;
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/service/A2AWebClientConfiguration.java
+================
+package io.a2a.receptionist.service;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Configuration
+public class A2AWebClientConfiguration {
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public WebClient webClient() {
+        return WebClient.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .build();
+    }
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/service/A2AWebClientService.java
+================
+package io.a2a.receptionist.service;
+
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import io.a2a.spec.CancelTaskRequest;
+import io.a2a.spec.CancelTaskResponse;
+import io.a2a.spec.GetTaskRequest;
+import io.a2a.spec.GetTaskResponse;
+import io.a2a.spec.SendMessageRequest;
+import io.a2a.spec.SendMessageResponse;
+import io.a2a.spec.SendStreamingMessageRequest;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+/**
+ * Service for agent-to-agent (A2A) JSON-RPC communication over HTTP using
+ * WebFlux.
+ */
+@Component
+@Slf4j
+public class A2AWebClientService {
+
+    private final WebClient webClient;
+
+    public A2AWebClientService(WebClient webClient) {
+        this.webClient = webClient;
+    }
+
+    /**
+     * Sends an A2A JSON-RPC message/send request to the agent at the provided URL.
+     */
+    public Mono<SendMessageResponse> sendMessage(String agentUrl, SendMessageRequest request) {
+        log.info("Sending message to webclient at URL: " + agentUrl);
+        return webClient.post()
+                .uri(agentUrl + "/agent/message")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(SendMessageResponse.class)
+                // .doOnSuccess(response -> log.info("Response from webclient: " + response.toString()))
+                .doOnError(error -> log.error("Error from webclient: " + error.getMessage()));
+    }
+
+    /**
+     * Sends a streaming message request.
+     */
+    public Flux<Object> sendStreamingMessage(String agentUrl, SendStreamingMessageRequest request) {
+        log.info("Sending streaming message to webclient at URL: " + agentUrl + "/agent/streaming");
+        return webClient.post()
+                .uri(agentUrl + "/agent/streaming")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToFlux(Object.class);
+    }
+
+    /**
+     * Gets a task by ID.
+     */
+    public Mono<GetTaskResponse> getTask(String agentUrl, GetTaskRequest request) {
+        log.info("Sending message to webclient at URL: " + agentUrl + "/agent/task");
+        return webClient.post()
+                .uri(agentUrl + "/agent/task")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(GetTaskResponse.class);
+    }
+
+    /**
+     * Cancels a task.
+     */
+    public Mono<CancelTaskResponse> cancelTask(String agentUrl, CancelTaskRequest request) {
+        log.info("Sending message to webclient at URL: " + agentUrl + "/agent/cancel" + " with request: " + request);
+        return webClient.post()
+                .uri(agentUrl + "/agent/cancel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(CancelTaskResponse.class);
+    }
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/ReceptionistController.java
+================
+package io.a2a.receptionist;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.a2a.receptionist.model.A2ASkillQuery;
+import io.a2a.receptionist.model.BestAgentResponse;
+import io.a2a.receptionist.model.SkillDiscoveryResponse;
+import io.a2a.receptionist.model.SkillInvocationRequest;
+import io.a2a.receptionist.model.SkillInvocationResponse;
+import reactor.core.publisher.Mono;
+
+
+/**
+ * REST controller providing A2A-compliant endpoints for capability discovery.
+ */
+@RestController
+@RequestMapping("/a2a/receptionist")
+public class ReceptionistController {
+
+    private final Receptionist receptionist;
+
+    public ReceptionistController(Receptionist receptionist) {
+        this.receptionist = receptionist;
+    }
+
+    /**
+     * Discover agents by capability query.
+     */
+    @PostMapping(value = "/discover", 
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<SkillDiscoveryResponse> discoverCapabilities(
+            @RequestBody A2ASkillQuery query) {
+        
+        return receptionist.findAgentsBySkills(query)
+            .map(agents -> SkillDiscoveryResponse.builder()
+                .success(true)
+                .agentCount(agents.size())
+                .agents(agents)
+                .build())
+            .onErrorReturn(SkillDiscoveryResponse.builder()
+                .success(false)
+                .errorMessage("Failed to discover capabilities")
+                .build());
+    }
+
+    /**
+     * Find the best agent for a specific capability.
+     */
+    @PostMapping(value = "/find-best", 
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<BestAgentResponse> findBestAgent(@RequestBody A2ASkillQuery query) {
+        
+        return receptionist.findBestAgentForSkill(query)
+            .map(agentOpt -> {
+                if (agentOpt.isPresent()) {
+                    return BestAgentResponse.builder()
+                        .success(true)
+                        .agent(agentOpt.get())
+                        .build();
+                } else {
+                    return BestAgentResponse.builder()
+                        .success(false)
+                        .errorMessage("No matching agent found")
+                        .build();
+                }
+            });
+    }
+
+    /**
+     * Invoke a skill on a discovered agent.
+     */
+    @PostMapping(value = "/invoke", 
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<SkillInvocationResponse> invokeSkill(
+            @RequestBody SkillInvocationRequest request) {
+        
+        return receptionist.invokeAgentSkill(request);
+    }
+
+    /**
+     * Discover all available capabilities.
+     */
+    @GetMapping(value = "/capabilities", 
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<SkillDiscoveryResponse> discoverAllCapabilities() {
+        
+        return receptionist.discoverAllSkills()
+            .map(agents -> SkillDiscoveryResponse.builder()
+                .success(true)
+                .agentCount(agents.size())
+                .agents(agents)
+                .build());
+    }
+}
+
+================
+File: a2a-receptionist/src/main/resources/application.properties
+================
+%dev.quarkus.http.port=9999
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/service/AgentRegistry.java
+================
+package io.a2a.receptionist.service;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.a2a.receptionist.model.A2AAgent;
+import io.a2a.receptionist.model.A2AAgentSkill;
+import io.a2a.receptionist.repository.AgentRepository;
+import io.a2a.receptionist.repository.model.dto.A2AAgentSkillDTO;
+import io.a2a.receptionist.repository.model.dto.AgentMetaDTO;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+
+@Component
+@Slf4j
+public class AgentRegistry implements ApplicationContextAware {
+
+    private ApplicationContext applicationContext;
+    private final AgentRepository agentRepository;
+
+    public AgentRegistry(AgentRepository agentRepository) {
+        this.agentRepository = agentRepository;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
+
+    // Registry to hold agent metadata, temporrarily in memory
+    @Getter
+    private final Map<String, AgentMeta> agentRegistry = new HashMap<>();
+
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void registerAgentsOnStartup() {
+        log.info("Registering A2A agents on startup...");
+        Map<String, Object> agentBeans = applicationContext.getBeansWithAnnotation(A2AAgent.class);
+
+        for (Map.Entry<String, Object> entry : agentBeans.entrySet()) {
+            String beanName = entry.getKey();
+            Object bean = entry.getValue();
+
+            Class<?> beanClass = bean.getClass();
+            A2AAgent agentAnnotation = beanClass.getAnnotation(A2AAgent.class);
+
+            if (agentAnnotation != null) {
+                registerAgent(beanName, bean, agentAnnotation);
+            }
+        }
+    }
+
+    /**
+     * Registers an agent bean with its skills into the registry and persists it to the database.
+     *
+     * @param beanName          The name of the bean in the application context.
+     * @param bean              The agent bean instance.
+     * @param agentAnnotation   The A2AAgent annotation containing metadata.
+     */
+    @Transactional
+    private void registerAgent(String beanName, Object bean, A2AAgent agentAnnotation) {
+        List<SkillMeta> skills = new ArrayList<>();
+
+        for (Method method : bean.getClass().getMethods()) {
+            if (method.isAnnotationPresent(A2AAgentSkill.class)) {
+                A2AAgentSkill skillAnn = method.getAnnotation(A2AAgentSkill.class);
+                skills.add(new SkillMeta(skillAnn, method));
+            }
+        }
+
+        AgentMeta meta = new AgentMeta(agentAnnotation, bean, skills);
+        agentRegistry.put(beanName, meta);
+        
+        log.info("Registered agent: {} with {} skills", agentAnnotation.name(), skills.size());
+        List<A2AAgentSkillDTO> skillDTOs = skills.stream()
+                .map(skillMeta -> {
+                    A2AAgentSkill skillAnnotation = skillMeta.getMethod().getAnnotation(A2AAgentSkill.class);
+                    return new A2AAgentSkillDTO(
+                            skillAnnotation.id(),
+                            skillAnnotation.name(),
+                            skillAnnotation.description(),
+                            skillAnnotation.tags() != null ? List.of(skillAnnotation.tags()) : List.of());
+                })
+                .collect(Collectors.toList());
+
+        AgentMetaDTO dto = new AgentMetaDTO(agentAnnotation.name(), skillDTOs);
+        ObjectMapper mapper = new ObjectMapper();
+        String jmeta = null;
+        try {
+            jmeta = mapper.writeValueAsString(dto);
+        } catch (IOException e) {
+            log.error(jmeta + " cannot be serialized to JSON", e);
+        }
+        if (jmeta == null) {
+            log.error("Failed to serialize agent metadata for agent: {}", agentAnnotation.name());
+            return;
+        }
+
+        AgentEntity entity = AgentEntity.builder()
+                .name(agentAnnotation.name())
+                .version(agentAnnotation.version())
+                .description(agentAnnotation.description())
+                .url(agentAnnotation.url())
+                .registeredAt(LocalDateTime.now())
+                .lastHeartbeat(LocalDateTime.now())
+                .active(true)
+                .skill(jmeta)
+                .build();
+
+        Optional<AgentEntity> existing = agentRepository.findByName(agentAnnotation.name());
+        if (existing.isPresent()) {
+            entity.setId(existing.get().getId());
+            entity.setRegisteredAt(existing.get().getRegisteredAt());
+        }
+
+        agentRepository.save(entity);
+        log.info("Registered agent: {} with {} skills", agentAnnotation.name(), skills.size());
+        log.debug("Agent metadata: {}", jmeta);
+    }
+
+
+
+    /**
+     * Deregister all agents when the application context is closed.
+     * This method is called automatically by Spring when the application context is shutting down.
+     */
+    @Transactional
+    public void deregisterAgentsOnContextClose() {
+        for (AgentMeta meta : agentRegistry.values()) {
+            agentRepository.deleteByName(meta.getName());
+            System.out.println("Deregistered agent: " + meta.getName());
+        }
+        agentRegistry.clear();
+    }
+
+    @Getter
+    public static class AgentMeta {
+        private final String name;
+        private final String version;
+        private final String description;
+        private final String url;
+        private final Object bean;
+        private final List<SkillMeta> skills;
+
+        public AgentMeta(A2AAgent agentAnn, Object bean, List<SkillMeta> skills) {
+            this.name = agentAnn.name();
+            this.version = agentAnn.version();
+            this.description = agentAnn.description();
+            this.url = agentAnn.url();
+            this.bean = bean;
+            this.skills = skills;
+        }
+    }
+
+    @Getter
+    public static class SkillMeta {
+        private final String id;
+        private final String name;
+        private final String description;
+        private final String[] tags;
+        private final Method method;
+
+        public SkillMeta(A2AAgentSkill ann, Method method) {
+            this.id = ann.id();
+            this.name = ann.name();
+            this.description = ann.description();
+            this.tags = ann.tags();
+            this.method = method;
+        }
+    }
+}
+
+================
+File: a2a-receptionist/src/main/java/io/a2a/receptionist/Receptionist.java
+================
+package io.a2a.receptionist;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.a2a.receptionist.model.A2ASkillQuery;
+import io.a2a.receptionist.model.AgentSkillDocument;
+import io.a2a.receptionist.model.SkillCapability;
+import io.a2a.receptionist.model.SkillInvocationRequest;
+import io.a2a.receptionist.model.SkillInvocationResponse;
+import io.a2a.receptionist.repository.AgentRepositoryImpl;
+import io.a2a.receptionist.repository.model.dto.AgentSkillDTO;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
+import io.a2a.receptionist.service.A2AWebClientService;
+import io.a2a.spec.EventKind;
+import io.a2a.spec.Message;
+import io.a2a.spec.Message.Role;
+import io.a2a.spec.MessageSendConfiguration;
+import io.a2a.spec.MessageSendParams;
+import io.a2a.spec.SendMessageRequest;
+import io.a2a.spec.TextPart;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
+@Component
+@Slf4j
+public class Receptionist {
+
+    private final AgentRepositoryImpl agentRepository;
+    private final A2AWebClientService webClientService;
+    private final ObjectMapper objectMapper;
+
+    public Receptionist(AgentRepositoryImpl agentRepository,
+            A2AWebClientService webClientService,
+            ObjectMapper objectMapper) {
+        this.agentRepository = agentRepository;
+        this.webClientService = webClientService;
+        this.objectMapper = objectMapper;
+    }
+
+    public Mono<List<AgentSkillDocument>> findAgentsBySkills(A2ASkillQuery capabilityQuery) {
+        return Mono.fromSupplier(() -> {
+            List<AgentSkillDocument> matchingAgents = new ArrayList<>();
+            List<AgentEntity> entities = agentRepository.searchByCapability(capabilityQuery);
+
+            for (AgentEntity entity : entities) {
+                try {
+                    AgentSkillDocument doc = objectMapper.readValue(entity.getSkill(), AgentSkillDocument.class);
+                    List<SkillCapability> matchingSkills = doc.getSkills().stream()
+                            .filter(skill -> isSkillMatching(skill, capabilityQuery))
+                            .map(this::convertToSkillCapability)
+                            .collect(Collectors.toList());
+
+                    if (!matchingSkills.isEmpty()) {
+                        double confidence = calculateConfidence(matchingSkills, capabilityQuery);
+                        if(confidence < 0.5) {
+                            log.warn("Low confidence for agent {}: {}", entity.getName(), confidence);
+                        }else {
+                            // doc.setSkills(matchingSkills);
+                            matchingAgents.add(doc);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Skill JSON parsing failed for {}: {}", entity.getName(), e.getMessage());
+                }
+            }
+
+            // Remove sorting by confidence since AgentCapabilities does not have getConfidence()
+            // If you want to sort by another property, adjust here.
+            return matchingAgents;
+        });
+    }
+
+    public Mono<Optional<AgentSkillDocument>> findBestAgentForSkill(A2ASkillQuery capabilityQuery) {
+        return findAgentsBySkills(capabilityQuery)
+                .map(list -> list.isEmpty() ? Optional.empty() : Optional.of(list.get(0)));
+    }
+
+    public Mono<SkillInvocationResponse> invokeAgentSkill(SkillInvocationRequest request) {
+        log.info(String.format("(KK) Invoking skill '%s' on agent '%s'", request.getSkillId(), request.getAgentName()));
+        Optional<AgentEntity> agentOpt = agentRepository.findByName(request.getAgentName());
+
+        if (agentOpt.isEmpty()) {
+            return Mono.just(SkillInvocationResponse.builder()
+                    .success(false)
+                    .errorMessage("Agent not found: " + request.getAgentName())
+                    .build());
+        }
+
+        AgentEntity agent = agentOpt.get();
+        SendMessageRequest messageRequest = createMessageRequest(request, agent.getUrl());
+        log.info(String.format("(KK) Sending message to agent %s at %s", agent.getName(), agent.getUrl()));
+        return webClientService.sendMessage(agent.getUrl(), messageRequest)
+                .map(response -> {
+                    EventKind eventKind = response.getResult();
+                    Message messageResult = null;
+                    if (eventKind instanceof Message) {
+                        messageResult = (Message) eventKind;
+                    }
+                    return SkillInvocationResponse.builder()
+                            .success(true)
+                            .result(messageResult) // Now pass actual Message result
+                            .taskId(messageResult != null ? messageResult.getTaskId() : null)
+                            .build();
+                })
+                .onErrorReturn(SkillInvocationResponse.builder()
+                        .success(false)
+                        .errorMessage("Skill invocation failed")
+                        .build());
+    }
+
+    public Mono<List<AgentSkillDocument>> discoverAllSkills() {
+        return Mono.fromSupplier(() -> {
+            A2ASkillQuery emptyQuery = new A2ASkillQuery();
+            List<AgentEntity> entities = agentRepository.searchByCapability(emptyQuery);
+
+            return entities.stream().map(entity -> {
+                try {
+                    AgentSkillDocument doc = objectMapper.readValue(entity.getSkill(), AgentSkillDocument.class);
+                    return doc;
+                } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException e) {
+                    log.error("Failed to parse skills for {}: {}", entity.getName(), e.getMessage());
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+        });
+    }
+
+    // --- Private Utility Methods ---
+    private boolean isSkillMatching(AgentSkillDTO skill, A2ASkillQuery query) {
+        if (query.getSkillId() != null && skill.getId().equals(query.getSkillId()))
+            return true;
+
+        if (query.getRequiredTags() != null && !query.getRequiredTags().isEmpty()) {
+            Set<String> tags = skill.getTags() != null ? new HashSet<>(skill.getTags()) : Set.of();
+            if (query.getRequiredTags().stream().anyMatch(tags::contains))
+                return true;
+        }
+
+        if (query.getKeywords() != null && !query.getKeywords().isEmpty()) {
+            String search = (skill.getName() + " " + skill.getDescription()).toLowerCase();
+            return query.getKeywords().stream().anyMatch(k -> search.contains(k.toLowerCase()));
+        }
+
+        return false;
+    }
+
+    private SkillCapability convertToSkillCapability(AgentSkillDTO skill) {
+        return SkillCapability.builder()
+                .skillId(skill.getId())
+                .skillName(skill.getName())
+                .description(skill.getDescription())
+                .tags(skill.getTags())
+                .inputModes(List.of("text/plain"))
+                .outputModes(List.of("text/plain"))
+                .build();
+    }
+
+    private double calculateConfidence(List<SkillCapability> skills, A2ASkillQuery query) {
+        if (skills.isEmpty())
+            return 0.0;
+        double score = 0.5 + skills.size() * 0.1;
+
+        if (query.getSkillId() != null &&
+                skills.stream().anyMatch(s -> s.getSkillId().equals(query.getSkillId())))
+            score += 0.3;
+
+        return Math.min(score, 1.0);
+    }
+
+    private SendMessageRequest createMessageRequest(SkillInvocationRequest request, String agentUrl) {
+        Message msg = new Message.Builder()
+                .role(Role.USER)
+                .parts(new TextPart(Optional.ofNullable(request.getInput()).orElse("")))
+                .messageId(UUID.randomUUID().toString())
+                .contextId(request.getSkillId())
+                .taskId(UUID.randomUUID().toString())
+                .build();
+
+        return new SendMessageRequest(
+                UUID.randomUUID().toString(),
+                new MessageSendParams.Builder()
+                        .message(msg)
+                        .configuration(new MessageSendConfiguration.Builder()
+                                .acceptedOutputModes(List.of("text/plain"))
+                                .blocking(true)
+                                .build())
+                        .build()
+        );
+    }
+}
+
+
+
+
+================================================================
+End of Codebase
+================================================================

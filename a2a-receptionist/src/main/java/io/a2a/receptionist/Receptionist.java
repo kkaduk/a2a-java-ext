@@ -13,15 +13,16 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.a2a.receptionist.model.AgentEntity;
-import io.a2a.receptionist.model.AgentSkillDTO;
+import io.a2a.receptionist.model.A2ASkillQuery;
 import io.a2a.receptionist.model.AgentSkillDocument;
-import io.a2a.receptionist.model.CapabilityQuery;
 import io.a2a.receptionist.model.SkillCapability;
 import io.a2a.receptionist.model.SkillInvocationRequest;
 import io.a2a.receptionist.model.SkillInvocationResponse;
+import io.a2a.receptionist.repository.AgentRepositoryImpl;
+import io.a2a.receptionist.repository.model.dto.AgentSkillDTO;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
 import io.a2a.receptionist.service.A2AWebClientService;
-import io.a2a.spec.AgentCapabilities;
+import io.a2a.spec.EventKind;
 import io.a2a.spec.Message;
 import io.a2a.spec.Message.Role;
 import io.a2a.spec.MessageSendConfiguration;
@@ -35,11 +36,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class Receptionist {
 
-    private final AgentRepositoryCustom agentRepository;
+    private final AgentRepositoryImpl agentRepository;
     private final A2AWebClientService webClientService;
     private final ObjectMapper objectMapper;
 
-    public Receptionist(AgentRepositoryCustom agentRepository,
+    public Receptionist(AgentRepositoryImpl agentRepository,
             A2AWebClientService webClientService,
             ObjectMapper objectMapper) {
         this.agentRepository = agentRepository;
@@ -47,7 +48,7 @@ public class Receptionist {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<List<AgentSkillDocument>> findAgentsByCapability(CapabilityQuery capabilityQuery) {
+    public Mono<List<AgentSkillDocument>> findAgentsBySkills(A2ASkillQuery capabilityQuery) {
         return Mono.fromSupplier(() -> {
             List<AgentSkillDocument> matchingAgents = new ArrayList<>();
             List<AgentEntity> entities = agentRepository.searchByCapability(capabilityQuery);
@@ -80,8 +81,8 @@ public class Receptionist {
         });
     }
 
-    public Mono<Optional<AgentSkillDocument>> findBestAgentForCapability(CapabilityQuery capabilityQuery) {
-        return findAgentsByCapability(capabilityQuery)
+    public Mono<Optional<AgentSkillDocument>> findBestAgentForSkill(A2ASkillQuery capabilityQuery) {
+        return findAgentsBySkills(capabilityQuery)
                 .map(list -> list.isEmpty() ? Optional.empty() : Optional.of(list.get(0)));
     }
 
@@ -100,39 +101,34 @@ public class Receptionist {
         SendMessageRequest messageRequest = createMessageRequest(request, agent.getUrl());
         log.info(String.format("(KK) Sending message to agent %s at %s", agent.getName(), agent.getUrl()));
         return webClientService.sendMessage(agent.getUrl(), messageRequest)
-                .map(eventKind -> SkillInvocationResponse.builder()
-                        .success(true)
-                        .result(null) // Replace with actual result extraction if possible
-                        .taskId(null) // Replace with actual taskId extraction if possible
-                        .build())
+                .map(response -> {
+                    EventKind eventKind = response.getResult();
+                    Message messageResult = null;
+                    if (eventKind instanceof Message) {
+                        messageResult = (Message) eventKind;
+                    }
+                    return SkillInvocationResponse.builder()
+                            .success(true)
+                            .result(messageResult) // Now pass actual Message result
+                            .taskId(messageResult != null ? messageResult.getTaskId() : null)
+                            .build();
+                })
                 .onErrorReturn(SkillInvocationResponse.builder()
                         .success(false)
                         .errorMessage("Skill invocation failed")
                         .build());
     }
 
-    public Mono<List<AgentCapabilities>> discoverAllCapabilities() {
+    public Mono<List<AgentSkillDocument>> discoverAllSkills() {
         return Mono.fromSupplier(() -> {
-            CapabilityQuery emptyQuery = new CapabilityQuery();
+            A2ASkillQuery emptyQuery = new A2ASkillQuery();
             List<AgentEntity> entities = agentRepository.searchByCapability(emptyQuery);
 
-            // If you want to return List<AgentCapabilities>, adjust the mapping accordingly
             return entities.stream().map(entity -> {
                 try {
                     AgentSkillDocument doc = objectMapper.readValue(entity.getSkill(), AgentSkillDocument.class);
-                    List<SkillCapability> allSkills = doc.getSkills().stream()
-                            .map(this::convertToSkillCapability)
-                            .collect(Collectors.toList());
-
-                    // Return AgentCapabilities instead of AgentCapabilityInfo
-                    //FIXME - return AgentSkills
-                    return new AgentCapabilities(
-                            false, // streaming
-                            false, // pushNotifications
-                            false, // stateTransitionHistory
-                            List.of() // extensions
-                    );
-                } catch (Exception e) {
+                    return doc;
+                } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException e) {
                     log.error("Failed to parse skills for {}: {}", entity.getName(), e.getMessage());
                     return null;
                 }
@@ -141,8 +137,7 @@ public class Receptionist {
     }
 
     // --- Private Utility Methods ---
-
-    private boolean isSkillMatching(AgentSkillDTO skill, CapabilityQuery query) {
+    private boolean isSkillMatching(AgentSkillDTO skill, A2ASkillQuery query) {
         if (query.getSkillId() != null && skill.getId().equals(query.getSkillId()))
             return true;
 
@@ -171,7 +166,7 @@ public class Receptionist {
                 .build();
     }
 
-    private double calculateConfidence(List<SkillCapability> skills, CapabilityQuery query) {
+    private double calculateConfidence(List<SkillCapability> skills, A2ASkillQuery query) {
         if (skills.isEmpty())
             return 0.0;
         double score = 0.5 + skills.size() * 0.1;

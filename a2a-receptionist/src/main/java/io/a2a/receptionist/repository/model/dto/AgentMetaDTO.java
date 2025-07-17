@@ -1,4 +1,4 @@
-package io.a2a.receptionist.model;
+package io.a2a.receptionist.repository.model.dto;
 
 import java.util.List;
 

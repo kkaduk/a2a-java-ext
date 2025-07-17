@@ -3,8 +3,10 @@ package io.a2a.receptionist.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.a2a.spec.AgentCapabilities;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
@@ -16,7 +18,7 @@ public class BestAgentResponse {
     private Boolean success;
     
     @JsonProperty("agent")
-    private AgentCapabilities agent;
+    private AgentSkillDocument agent;
     
     @JsonProperty("errorMessage")
     private String errorMessage;

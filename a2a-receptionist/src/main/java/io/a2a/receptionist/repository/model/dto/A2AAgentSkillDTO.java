@@ -1,4 +1,4 @@
-package io.a2a.receptionist.model;
+package io.a2a.receptionist.repository.model.dto;
 
 import java.util.List;
 
@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AgentMatchDTO {
+public class A2AAgentSkillDTO {
+    private String id;
     private String name;
-    private String url;
-    private String version;
-    private List<AgentSkillDTO> skills;
+    private String description;
+    private List<String> tags;  
 }

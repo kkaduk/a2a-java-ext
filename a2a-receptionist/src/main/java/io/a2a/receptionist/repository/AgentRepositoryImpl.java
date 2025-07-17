@@ -1,4 +1,4 @@
-package io.a2a.receptionist;
+package io.a2a.receptionist.repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,11 +7,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
 
+import io.a2a.receptionist.model.A2ASkillQuery;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
-import io.a2a.receptionist.model.AgentEntity;
-import io.a2a.receptionist.model.CapabilityQuery;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,7 +20,7 @@ public class AgentRepositoryImpl implements AgentRepositoryCustom {
     private final EntityManager entityManager;
 
     @Override
-    public List<AgentEntity> searchByCapability(CapabilityQuery query) {
+    public List<AgentEntity> searchByCapability(A2ASkillQuery query) {
         StringBuilder sql = new StringBuilder("""
                     SELECT * FROM a2a_agents ar
                     WHERE 1=1

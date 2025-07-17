@@ -19,12 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.a2a.receptionist.AgentRepository;
 import io.a2a.receptionist.model.A2AAgent;
 import io.a2a.receptionist.model.A2AAgentSkill;
-import io.a2a.receptionist.model.A2AAgentSkillDTO;
-import io.a2a.receptionist.model.AgentEntity;
-import io.a2a.receptionist.model.AgentMetaDTO;
+import io.a2a.receptionist.repository.AgentRepository;
+import io.a2a.receptionist.repository.model.dto.A2AAgentSkillDTO;
+import io.a2a.receptionist.repository.model.dto.AgentMetaDTO;
+import io.a2a.receptionist.repository.model.entity.AgentEntity;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
