@@ -17,7 +17,7 @@
     <description>Receptionist, akka idea</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <spring.boot.version>3.2.0</spring.boot.version>
         <jackson.version>2.15.2</jackson.version>
         <jakarta.annotation.version>2.1.1</jakarta.annotation.version>

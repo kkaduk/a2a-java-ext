@@ -8,5 +8,6 @@ import lombok.Data;
 @Data
 public class AgentSkillDocument {
     private String agentName;
+    private String url;
     private List<AgentSkillDTO> skills;
 }

@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.a2a.receptionist.service.AgentRegistry;
 import io.a2a.spec.AgentCapabilities;
 import io.a2a.spec.AgentCard;
@@ -52,6 +54,8 @@ import reactor.core.publisher.Mono;
 public class AgentController {
 
         private final AgentRegistry agentRegistry;
+
+        ObjectMapper objectMapper = new ObjectMapper();
 
         // Constructor injection instead of field injection
         public AgentController(@Lazy AgentRegistry agentRegistry) {
@@ -185,6 +189,7 @@ public class AgentController {
                                 try {
                                         AgentRegistry.SkillMeta skill = skillOpt.get();
                                         Object result;
+                                        Object[] args;
 
                                         // Handle different parameter types
                                         Class<?>[] paramTypes = skill.getMethod().getParameterTypes();
@@ -200,11 +205,25 @@ public class AgentController {
                                                 log.info("(KK888-EX-2) Skill " + skillId + " executed with result: "
                                                                 + result);
                                         } else {
-                                                // For multiple parameters, you might need more sophisticated parameter
-                                                // mapping
-                                                result = skill.getMethod().invoke(agent.getBean(), input);
-                                                log.info(input + " (KK888-EX-3) MP Skill " + skillId
-                                                                + " executed with result: " + result);
+                                                // Multi-parameter method: parse input string as List or Map
+                                                //FIXME!!!
+                                                if (((String) input).trim().startsWith("[")) {
+                                                        // Input is a JSON array: ["arg1", 123]
+                                                        List<?> inputList = objectMapper.readValue((String) input,
+                                                                        List.class);
+                                                        args = inputList.toArray();
+                                                } else {
+                                                        // Input is a JSON object: {"arg0": "hello", "arg1": 123}
+                                                        Map<String, Object> inputMap = objectMapper
+                                                                        .readValue((String) input, Map.class);
+                                                        args = new Object[paramTypes.length];
+                                                        for (int i = 0; i < paramTypes.length; i++) {
+                                                                args[i] = inputMap.get("arg" + i);
+                                                        }
+                                                }
+
+                                                result = skill.getMethod().invoke(agent.getBean(), args);
+
                                         }
 
                                         // Create new task with result (immutable)

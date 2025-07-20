@@ -60,12 +60,14 @@ public class Receptionist {
                             .filter(skill -> isSkillMatching(skill, capabilityQuery))
                             .map(this::convertToSkillCapability)
                             .collect(Collectors.toList());
+                    doc.setAgentName(entity.getName());
+                    doc.setUrl(entity.getUrl());
 
                     if (!matchingSkills.isEmpty()) {
                         double confidence = calculateConfidence(matchingSkills, capabilityQuery);
-                        if(confidence < 0.5) {
+                        if (confidence < 0.5) {
                             log.warn("Low confidence for agent {}: {}", entity.getName(), confidence);
-                        }else {
+                        } else {
                             // doc.setSkills(matchingSkills);
                             matchingAgents.add(doc);
                         }
@@ -75,7 +77,8 @@ public class Receptionist {
                 }
             }
 
-            // Remove sorting by confidence since AgentCapabilities does not have getConfidence()
+            // Remove sorting by confidence since AgentCapabilities does not have
+            // getConfidence()
             // If you want to sort by another property, adjust here.
             return matchingAgents;
         });
@@ -127,6 +130,8 @@ public class Receptionist {
             return entities.stream().map(entity -> {
                 try {
                     AgentSkillDocument doc = objectMapper.readValue(entity.getSkill(), AgentSkillDocument.class);
+                    doc.setAgentName(entity.getName());
+                    doc.setUrl(entity.getUrl());
                     return doc;
                 } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException e) {
                     log.error("Failed to parse skills for {}: {}", entity.getName(), e.getMessage());
@@ -195,7 +200,6 @@ public class Receptionist {
                                 .acceptedOutputModes(List.of("text/plain"))
                                 .blocking(true)
                                 .build())
-                        .build()
-        );
+                        .build());
     }
 }
