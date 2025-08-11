@@ -14,6 +14,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.event.EventListener;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import io.a2a.receptionist.repository.AgentRepository;
 import io.a2a.receptionist.repository.model.dto.A2AAgentSkillDTO;
 import io.a2a.receptionist.repository.model.dto.AgentMetaDTO;
 import io.a2a.receptionist.repository.model.entity.AgentEntity;
+import io.a2a.util.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +43,7 @@ public class AgentRegistry implements ApplicationContextAware {
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) {
+    public void setApplicationContext(@NonNull ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,7 +23,7 @@ public class SkillInvocationRequest {
     private String skillId;
     
     @JsonProperty("input")
-    private String input;
+    private List<String> input;
     
     @JsonProperty("metadata")
     private Map<String, Object> metadata;

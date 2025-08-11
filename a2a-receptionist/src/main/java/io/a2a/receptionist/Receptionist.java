@@ -1,8 +1,10 @@
 package io.a2a.receptionist;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +29,7 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Message.Role;
 import io.a2a.spec.MessageSendConfiguration;
 import io.a2a.spec.MessageSendParams;
+import io.a2a.spec.Part;
 import io.a2a.spec.SendMessageRequest;
 import io.a2a.spec.TextPart;
 import lombok.extern.slf4j.Slf4j;
@@ -184,12 +187,46 @@ public class Receptionist {
     }
 
     private SendMessageRequest createMessageRequest(SkillInvocationRequest request, String agentUrl) {
+        // Build parts from input list (ensure non-empty, as Message requires at least
+        // one Part)
+        List<Part<?>> parts = Optional.ofNullable(request.getInput())
+                .orElse(List.of())
+                .stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(TextPart::new)
+                .map(p -> (Part<?>) p)
+                .collect(Collectors.toList());
+
+        if (parts.isEmpty()) {
+            // Preserve original behavior: send a single empty TextPart when there is no
+            // input
+            parts = List.of(new TextPart(""));
+        }
+
+        // Merge metadata + include useful routing info
+        Map<String, Object> metadata = new HashMap<>();
+        if (request.getMetadata() != null) {
+            metadata.putAll(request.getMetadata());
+        }
+        if (request.getSkillId() != null) {
+            metadata.put("skillId", request.getSkillId());
+        }
+        if (request.getAgentName() != null) {
+            metadata.put("agentName", request.getAgentName());
+        }
+        if (agentUrl != null) {
+            metadata.put("agentUrl", agentUrl);
+        }
+
         Message msg = new Message.Builder()
-                .role(Role.USER)
-                .parts(new TextPart(Optional.ofNullable(request.getInput()).orElse("")))
+                .role(Message.Role.USER)
+                .parts(parts)
                 .messageId(UUID.randomUUID().toString())
-                .contextId(request.getSkillId())
+                .contextId(Optional.ofNullable(request.getContextId()).orElse(request.getSkillId()))
                 .taskId(UUID.randomUUID().toString())
+                .metadata(metadata)
                 .build();
 
         return new SendMessageRequest(
@@ -202,4 +239,5 @@ public class Receptionist {
                                 .build())
                         .build());
     }
+
 }

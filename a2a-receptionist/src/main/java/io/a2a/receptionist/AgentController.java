@@ -173,8 +173,8 @@ public class AgentController {
                                 .build());
 
                 // Extract input from message parts
-                String input = extractInputFromMessage(msg);
-
+                // String input = extractInputFromMessage(msg);
+                List<String> input = extractAllInputFromMessage(msg);
                 // Find and execute skill
                 Map<String, AgentRegistry.AgentMeta> agents = agentRegistry.getAgentRegistry();
                 log.info("(KK777) expecting skill for agent: " + agents.entrySet().toString() + " for skill: "
@@ -198,31 +198,21 @@ public class AgentController {
                                                 log.info("(KK888-EX-1) Skill " + skillId + " executed with result: "
                                                                 + result);
                                         } else if (paramTypes.length == 1) {
-                                                result = skill.getMethod().invoke(agent.getBean(), input);
+                                                result = skill.getMethod().invoke(agent.getBean(), input.get(0));
                                                 if (result instanceof CompletableFuture) {
                                                         result = ((CompletableFuture<?>) result).get(); // Blocking wait
                                                 }
                                                 log.info("(KK888-EX-2) Skill " + skillId + " executed with result: "
                                                                 + result);
                                         } else {
-                                                // Multi-parameter method: parse input string as List or Map
-                                                //FIXME!!!
-                                                if (((String) input).trim().startsWith("[")) {
-                                                        // Input is a JSON array: ["arg1", 123]
-                                                        List<?> inputList = objectMapper.readValue((String) input,
-                                                                        List.class);
-                                                        args = inputList.toArray();
-                                                } else {
-                                                        // Input is a JSON object: {"arg0": "hello", "arg1": 123}
-                                                        Map<String, Object> inputMap = objectMapper
-                                                                        .readValue((String) input, Map.class);
-                                                        args = new Object[paramTypes.length];
-                                                        for (int i = 0; i < paramTypes.length; i++) {
-                                                                args[i] = inputMap.get("arg" + i);
-                                                        }
-                                                }
-
+                                                // Multi-parameter method: parse input string as a Part in message
+                                               args = input.toArray();
                                                 result = skill.getMethod().invoke(agent.getBean(), args);
+                                                if (result instanceof CompletableFuture) {
+                                                        result = ((CompletableFuture<?>) result).get(); // Blocking wait
+                                                }
+                                                log.info("(KK888-EX-multi args) Skill " + skillId + " executed with result: "
+                                                                + result);
 
                                         }
 
@@ -294,6 +284,18 @@ public class AgentController {
                         }
                 }
                 return "";
+        }
+
+        //(KK) Prepare to invoke Skills with many parameters
+        private List<String> extractAllInputFromMessage(Message msg) {
+                if (msg.getParts() == null || msg.getParts().isEmpty()) {
+                        return Collections.emptyList();
+                }
+
+                return msg.getParts().stream()
+                                .filter(part -> part instanceof TextPart)
+                                .map(part -> ((TextPart) part).getText())
+                                .collect(Collectors.toList());
         }
 
         private Message createResponseMessage(Task task) {
