@@ -9,5 +9,6 @@ import lombok.Data;
 public class AgentSkillDocument {
     private String agentName;
     private String url;
+    private Double confidence;
     private List<AgentSkillDTO> skills;
 }

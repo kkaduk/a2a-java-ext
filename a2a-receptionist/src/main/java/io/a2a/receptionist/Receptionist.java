@@ -68,6 +68,7 @@ public class Receptionist {
 
                     if (!matchingSkills.isEmpty()) {
                         double confidence = calculateConfidence(matchingSkills, capabilityQuery);
+                        doc.setConfidence(confidence);
                         if (confidence < 0.5) {
                             log.warn("Low confidence for agent {}: {}", entity.getName(), confidence);
                         } else {
@@ -80,9 +81,16 @@ public class Receptionist {
                 }
             }
 
-            // Remove sorting by confidence since AgentCapabilities does not have
-            // getConfidence()
-            // If you want to sort by another property, adjust here.
+            if (matchingAgents.isEmpty()) {
+                log.info("No agents found matching query: {}", capabilityQuery);
+            } else {
+                log.info("Found {} agents matching query: {}", matchingAgents.size(), capabilityQuery);
+            }
+            matchingAgents.sort((a, b) -> Double.compare(b.getConfidence(), a.getConfidence()));
+            // Return only the top 10 agents for performance
+            if (matchingAgents.size() > 10) {
+                matchingAgents = matchingAgents.subList(0, 10);
+            }
             return matchingAgents;
         });
     }

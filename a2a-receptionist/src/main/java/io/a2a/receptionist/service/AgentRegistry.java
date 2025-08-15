@@ -30,7 +30,6 @@ import io.a2a.util.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Component
 @Slf4j
 public class AgentRegistry implements ApplicationContextAware {
@@ -71,11 +70,12 @@ public class AgentRegistry implements ApplicationContextAware {
     }
 
     /**
-     * Registers an agent bean with its skills into the registry and persists it to the database.
+     * Registers an agent bean with its skills into the registry and persists it to
+     * the database.
      *
-     * @param beanName          The name of the bean in the application context.
-     * @param bean              The agent bean instance.
-     * @param agentAnnotation   The A2AAgent annotation containing metadata.
+     * @param beanName        The name of the bean in the application context.
+     * @param bean            The agent bean instance.
+     * @param agentAnnotation The A2AAgent annotation containing metadata.
      */
     @Transactional
     private void registerAgent(String beanName, Object bean, A2AAgent agentAnnotation) {
@@ -90,7 +90,7 @@ public class AgentRegistry implements ApplicationContextAware {
 
         AgentMeta meta = new AgentMeta(agentAnnotation, bean, skills);
         agentRegistry.put(beanName, meta);
-        
+
         log.info("Registered agent: {} with {} skills", agentAnnotation.name(), skills.size());
         List<A2AAgentSkillDTO> skillDTOs = skills.stream()
                 .map(skillMeta -> {
@@ -138,17 +138,22 @@ public class AgentRegistry implements ApplicationContextAware {
         log.debug("Agent metadata: {}", jmeta);
     }
 
-
-
     /**
      * Deregister all agents when the application context is closed.
-     * This method is called automatically by Spring when the application context is shutting down.
+     * This method is called automatically by Spring when the application context is
+     * shutting down.
      */
     @Transactional
     public void deregisterAgentsOnContextClose() {
+        log.info("Deregistering all A2A agents on context close...");
         for (AgentMeta meta : agentRegistry.values()) {
+             Optional<AgentEntity> existing = agentRepository.findByName(meta.getName());
+        if (existing.isPresent()) {
             agentRepository.deleteByName(meta.getName());
-            System.out.println("Deregistered agent: " + meta.getName());
+            log.info("Deregistered from persistent store agent: {} with ID: {}", meta.getName());
+        }
+            agentRepository.deleteByName(meta.getName());
+            System.out.println("Deregistered localy agent: " + meta.getName());
         }
         agentRegistry.clear();
     }

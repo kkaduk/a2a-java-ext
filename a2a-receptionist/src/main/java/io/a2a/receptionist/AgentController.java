@@ -67,7 +67,7 @@ public class AgentController {
 
         @PostMapping(value = "/agent/message", consumes = MediaType.APPLICATION_JSON_VALUE)
         public Mono<SendMessageResponse> handleSendMessage(@RequestBody SendMessageRequest request) {
-                log.info("(KK777) Received message request: {}", request);
+                log.info("Received message request: {}", request);
                 return processMessage(request.getParams())
                                 .map(task -> new SendMessageResponse(request.getId(), createResponseMessage(task)))
                                 .onErrorReturn(new SendMessageResponse(request.getId(),
@@ -76,6 +76,7 @@ public class AgentController {
 
         @PostMapping(value = "/agent/stream", consumes = MediaType.APPLICATION_JSON_VALUE)
         public Flux<Object> handleStreamingMessage(@RequestBody SendStreamingMessageRequest request) {
+                 log.info("Received stream  message request: {}", request);
                 return processMessage(request.getParams())
                                 .flatMapMany(task -> {
                                         Flux<Object> statusUpdate = Flux.just(createTaskStatusUpdate(task));
@@ -153,8 +154,15 @@ public class AgentController {
                 return Mono.just(new CancelTaskResponse(request.getId(), canceledTask));
         }
 
+        /**
+         * Processes a message by finding the appropriate skill in the agent registry
+         * and executing it. It is specific to receptionist extension and handles
+         * the logic of invoking skills based on the message context.
+         * @param params
+         * @return
+         */
         private Mono<Task> processMessage(MessageSendParams params) {
-                log.info("(KK777) Processing message: " + params);
+                log.info("Processing skill message: " + params);
                 if (params == null || params.message() == null) {
                         return Mono.error(new IllegalArgumentException("Invalid message parameters"));
                 }
@@ -172,12 +180,10 @@ public class AgentController {
                                 .history(new ArrayList<>())
                                 .build());
 
-                // Extract input from message parts
-                // String input = extractInputFromMessage(msg);
                 List<String> input = extractAllInputFromMessage(msg);
                 // Find and execute skill
                 Map<String, AgentRegistry.AgentMeta> agents = agentRegistry.getAgentRegistry();
-                log.info("(KK777) expecting skill for agent: " + agents.entrySet().toString() + " for skill: "
+                log.info("(Expecting skill for agent: " + agents.entrySet().toString() + " for skill: "
                                 + skillId);
                 for (AgentRegistry.AgentMeta agent : agents.values()) {
                         Optional<AgentRegistry.SkillMeta> skillOpt = agent.getSkills().stream()
@@ -185,7 +191,7 @@ public class AgentController {
                                         .findFirst();
 
                         if (skillOpt.isPresent()) {
-                                log.info("(KK777) Found skill: " + skillId + " in agent: " + agent.getName());
+                                log.info("Found skill: " + skillId + " in agent: " + agent.getName());
                                 try {
                                         AgentRegistry.SkillMeta skill = skillOpt.get();
                                         Object result;
@@ -195,14 +201,14 @@ public class AgentController {
                                         Class<?>[] paramTypes = skill.getMethod().getParameterTypes();
                                         if (paramTypes.length == 0) {
                                                 result = skill.getMethod().invoke(agent.getBean());
-                                                log.info("(KK888-EX-1) Skill " + skillId + " executed with result: "
+                                                log.info("Skill without parameters" + skillId + " executed with result: "
                                                                 + result);
                                         } else if (paramTypes.length == 1) {
                                                 result = skill.getMethod().invoke(agent.getBean(), input.get(0));
                                                 if (result instanceof CompletableFuture) {
                                                         result = ((CompletableFuture<?>) result).get(); // Blocking wait
                                                 }
-                                                log.info("(KK888-EX-2) Skill " + skillId + " executed with result: "
+                                                log.info("Skill with one parameter" + skillId + " executed with result: "
                                                                 + result);
                                         } else {
                                                 // Multi-parameter method: parse input string as a Part in message
@@ -211,7 +217,7 @@ public class AgentController {
                                                 if (result instanceof CompletableFuture) {
                                                         result = ((CompletableFuture<?>) result).get(); // Blocking wait
                                                 }
-                                                log.info("(KK888-EX-multi args) Skill " + skillId + " executed with result: "
+                                                log.info("Skill with multiparameters " + skillId + " executed with result: "
                                                                 + result);
 
                                         }
@@ -222,7 +228,7 @@ public class AgentController {
                                                 metadata.putAll(task.getMetadata());
                                         }
 
-                                        log.info("(KK888) Skill " + skillId + " executed with result: "
+                                        log.info("Skill: " + skillId + " executed with result: "
                                                         + result.toString());
                                         metadata.put("result", result != null ? result.toString() : "null");
 
@@ -235,7 +241,7 @@ public class AgentController {
                                                         .build();
 
                                         tasks.put(taskId, completedTask);
-                                        log.info("(KK999) Skill " + skillId + " executed successfully with result: "
+                                        log.info("Skill " + skillId + " executed successfully with result: "
                                                         + completedTask.getMetadata().get("result"));
                                         return Mono.just(completedTask);
                                 } catch (Exception e) {
@@ -274,16 +280,6 @@ public class AgentController {
 
                 tasks.put(taskId, rejectedTask);
                 return Mono.just(rejectedTask);
-        }
-
-        private String extractInputFromMessage(Message msg) {
-                if (msg.getParts() != null && !msg.getParts().isEmpty()) {
-                        Part<?> firstPart = msg.getParts().get(0);
-                        if (firstPart instanceof TextPart) {
-                                return ((TextPart) firstPart).getText();
-                        }
-                }
-                return "";
         }
 
         //(KK) Prepare to invoke Skills with many parameters
