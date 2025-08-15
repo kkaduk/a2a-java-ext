@@ -1,15 +1,8 @@
 package io.a2a.receptionist;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -43,6 +36,16 @@ public class Receptionist {
     private final A2AWebClientService webClientService;
     private final ObjectMapper objectMapper;
 
+    // Common business/technical terms for semantic matching
+    private static final Map<String, Set<String>> SEMANTIC_GROUPS = Map.of(
+        "review", Set.of("review", "assessment", "evaluation", "analysis", "audit", "examination", "inspection"),
+        "executive", Set.of("executive", "leadership", "management", "strategic", "senior", "c-level", "director"),
+        "banking", Set.of("banking", "financial", "finance", "fintech", "monetary", "credit", "lending"),
+        "ai", Set.of("ai", "artificial intelligence", "machine learning", "ml", "intelligent", "smart", "automated"),
+        "product", Set.of("product", "service", "offering", "solution", "platform", "system"),
+        "digital", Set.of("digital", "online", "electronic", "cyber", "virtual", "tech", "technology")
+    );
+
     public Receptionist(AgentRepositoryImpl agentRepository,
             A2AWebClientService webClientService,
             ObjectMapper objectMapper) {
@@ -54,54 +57,359 @@ public class Receptionist {
     public Mono<List<AgentSkillDocument>> findAgentsBySkills(A2ASkillQuery capabilityQuery) {
         return Mono.fromSupplier(() -> {
             List<AgentSkillDocument> matchingAgents = new ArrayList<>();
-            List<AgentEntity> entities = agentRepository.searchByCapability(capabilityQuery);
+            
+            // Get all agents if we need loose matching, otherwise use existing DB filtering for exact matches
+            List<AgentEntity> entities;
+            if (hasExactCriteria(capabilityQuery)) {
+                entities = agentRepository.searchByCapability(capabilityQuery);
+            } else {
+                // For loose matching, get all agents and do in-memory filtering
+                entities = agentRepository.searchByCapability(new A2ASkillQuery());
+            }
+
+            log.info("Evaluating {} agents for query: {}", entities.size(), capabilityQuery);
 
             for (AgentEntity entity : entities) {
                 try {
                     AgentSkillDocument doc = objectMapper.readValue(entity.getSkill(), AgentSkillDocument.class);
-                    List<SkillCapability> matchingSkills = doc.getSkills().stream()
-                            .filter(skill -> isSkillMatching(skill, capabilityQuery))
-                            .map(this::convertToSkillCapability)
-                            .collect(Collectors.toList());
                     doc.setAgentName(entity.getName());
                     doc.setUrl(entity.getUrl());
 
-                    if (!matchingSkills.isEmpty()) {
-                        double confidence = calculateConfidence(matchingSkills, capabilityQuery);
-                        doc.setConfidence(confidence);
-                        if (confidence < 0.5) {
-                            log.warn("Low confidence for agent {}: {}", entity.getName(), confidence);
-                        } else {
-                            // doc.setSkills(matchingSkills);
-                            matchingAgents.add(doc);
+                    // Enhanced skill matching with confidence scoring
+                    List<SkillMatchResult> matchResults = doc.getSkills().stream()
+                            .map(skill -> evaluateSkillMatch(skill, capabilityQuery))
+                            .filter(result -> result.confidence > 0.1) // Filter out very low confidence matches
+                            .collect(Collectors.toList());
+
+                    if (!matchResults.isEmpty()) {
+                        // Calculate overall agent confidence based on best matching skill
+                        double maxConfidence = matchResults.stream()
+                                .mapToDouble(result -> result.confidence)
+                                .max()
+                                .orElse(0.0);
+
+                        // Also consider average confidence for multiple matching skills
+                        double avgConfidence = matchResults.stream()
+                                .mapToDouble(result -> result.confidence)
+                                .average()
+                                .orElse(0.0);
+
+                        // Combine max and average with slight weight towards the best match
+                        double finalConfidence = (maxConfidence * 0.7) + (avgConfidence * 0.3);
+                        
+                        // Boost confidence if multiple skills match
+                        if (matchResults.size() > 1) {
+                            finalConfidence = Math.min(1.0, finalConfidence * 1.1);
                         }
+
+                        doc.setConfidence(finalConfidence);
+                        matchingAgents.add(doc);
+                        
+                        log.debug("Agent {} matched with confidence {}: {} skills matched", 
+                                entity.getName(), finalConfidence, matchResults.size());
                     }
                 } catch (Exception e) {
                     log.warn("Skill JSON parsing failed for {}: {}", entity.getName(), e.getMessage());
                 }
             }
 
-            if (matchingAgents.isEmpty()) {
-                log.info("No agents found matching query: {}", capabilityQuery);
-            } else {
-                log.info("Found {} agents matching query: {}", matchingAgents.size(), capabilityQuery);
-            }
+            // Sort by confidence (highest first) and apply result limits
             matchingAgents.sort((a, b) -> Double.compare(b.getConfidence(), a.getConfidence()));
-            // Return only the top 10 agents for performance
-            if (matchingAgents.size() > 10) {
-                matchingAgents = matchingAgents.subList(0, 10);
+            
+            int maxResults = Optional.ofNullable(capabilityQuery.getMaxResults()).orElse(10);
+            if (matchingAgents.size() > maxResults) {
+                matchingAgents = matchingAgents.subList(0, maxResults);
             }
+
+            log.info("Found {} agents matching query with confidence >= 0.1", matchingAgents.size());
+            if (!matchingAgents.isEmpty()) {
+                log.info("Top match: {} with confidence {}", 
+                        matchingAgents.get(0).getAgentName(), 
+                        matchingAgents.get(0).getConfidence());
+            }
+
             return matchingAgents;
         });
     }
 
+    /**
+     * Enhanced skill matching that considers semantic similarity and loose text matching
+     */
+    private SkillMatchResult evaluateSkillMatch(AgentSkillDTO skill, A2ASkillQuery query) {
+        double confidence = 0.0;
+        List<String> matchReasons = new ArrayList<>();
+
+        // 1. Exact skill ID match (highest confidence)
+        if (query.getSkillId() != null && skill.getId().equalsIgnoreCase(query.getSkillId())) {
+            confidence = 1.0;
+            matchReasons.add("exact-id-match");
+            return new SkillMatchResult(skill, confidence, matchReasons);
+        }
+
+        // 2. Tag matching with semantic expansion
+        if (query.getRequiredTags() != null && !query.getRequiredTags().isEmpty()) {
+            Set<String> skillTags = skill.getTags() != null ? 
+                    new HashSet<>(skill.getTags().stream().map(String::toLowerCase).toList()) : 
+                    new HashSet<>();
+
+            double tagMatchScore = calculateTagMatchScore(skillTags, query.getRequiredTags(), query.getMatchAllTags());
+            if (tagMatchScore > 0) {
+                confidence = Math.max(confidence, tagMatchScore);
+                matchReasons.add("tag-match-" + String.format("%.2f", tagMatchScore));
+            }
+        }
+
+        // 3. Keyword matching in skill text with semantic similarity
+        if (query.getKeywords() != null && !query.getKeywords().isEmpty()) {
+            double keywordScore = calculateKeywordMatchScore(skill, query.getKeywords());
+            if (keywordScore > 0) {
+                confidence = Math.max(confidence, keywordScore);
+                matchReasons.add("keyword-match-" + String.format("%.2f", keywordScore));
+            }
+        }
+
+        // 4. Semantic description matching (new feature)
+        if (hasDescriptiveText(query)) {
+            double semanticScore = calculateSemanticMatchScore(skill, query);
+            if (semanticScore > 0) {
+                confidence = Math.max(confidence, semanticScore);
+                matchReasons.add("semantic-match-" + String.format("%.2f", semanticScore));
+            }
+        }
+
+        // 5. Fallback: loose text similarity for any query with text content
+        if (confidence == 0.0 && hasAnyTextCriteria(query)) {
+            double fallbackScore = calculateFallbackTextSimilarity(skill, query);
+            if (fallbackScore > 0.2) { // Only consider reasonable fallback matches
+                confidence = fallbackScore;
+                matchReasons.add("text-similarity-" + String.format("%.2f", fallbackScore));
+            }
+        }
+
+        return new SkillMatchResult(skill, confidence, matchReasons);
+    }
+
+    private double calculateTagMatchScore(Set<String> skillTags, List<String> requiredTags, Boolean matchAllTags) {
+        if (skillTags.isEmpty()) return 0.0;
+
+        boolean matchAll = Boolean.TRUE.equals(matchAllTags);
+        Set<String> queryTags = requiredTags.stream().map(String::toLowerCase).collect(Collectors.toSet());
+        
+        // Direct tag matches
+        Set<String> directMatches = new HashSet<>(skillTags);
+        directMatches.retainAll(queryTags);
+        
+        // Semantic tag matches
+        Set<String> semanticMatches = findSemanticTagMatches(skillTags, queryTags);
+        
+        int totalMatches = directMatches.size() + semanticMatches.size();
+        
+        if (matchAll) {
+            // All tags must match (directly or semantically)
+            return totalMatches >= queryTags.size() ? 0.9 : (double) totalMatches / queryTags.size() * 0.7;
+        } else {
+            // Any tag matches
+            if (totalMatches > 0) {
+                double baseScore = Math.min(0.8, (double) totalMatches / queryTags.size());
+                return directMatches.isEmpty() ? baseScore * 0.8 : baseScore; // Slight penalty for semantic-only matches
+            }
+        }
+        
+        return 0.0;
+    }
+
+    private Set<String> findSemanticTagMatches(Set<String> skillTags, Set<String> queryTags) {
+        Set<String> matches = new HashSet<>();
+        
+        for (String skillTag : skillTags) {
+            for (String queryTag : queryTags) {
+                if (areSemanticallySimilar(skillTag, queryTag)) {
+                    matches.add(queryTag);
+                }
+            }
+        }
+        
+        return matches;
+    }
+
+    private double calculateKeywordMatchScore(AgentSkillDTO skill, List<String> keywords) {
+        String searchText = buildSearchableText(skill);
+        String[] words = searchText.split("\\s+");
+        Set<String> skillWords = Arrays.stream(words)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+
+        int exactMatches = 0;
+        int semanticMatches = 0;
+        
+        for (String keyword : keywords) {
+            String lowerKeyword = keyword.toLowerCase();
+            
+            // Check for exact word matches
+            if (skillWords.contains(lowerKeyword) || searchText.contains(lowerKeyword)) {
+                exactMatches++;
+                continue;
+            }
+            
+            // Check for semantic matches
+            boolean foundSemantic = skillWords.stream()
+                    .anyMatch(word -> areSemanticallySimilar(word, lowerKeyword));
+                    
+            if (foundSemantic) {
+                semanticMatches++;
+            }
+        }
+        
+        if (exactMatches + semanticMatches == 0) return 0.0;
+        
+        double exactScore = (double) exactMatches / keywords.size() * 0.8;
+        double semanticScore = (double) semanticMatches / keywords.size() * 0.6;
+        
+        return Math.min(0.85, exactScore + semanticScore);
+    }
+
+    private double calculateSemanticMatchScore(AgentSkillDTO skill, A2ASkillQuery query) {
+        String skillText = buildSearchableText(skill);
+        List<String> allQueryTerms = extractAllQueryTerms(query);
+        
+        if (allQueryTerms.isEmpty()) return 0.0;
+        
+        int semanticMatches = 0;
+        for (String term : allQueryTerms) {
+            if (containsSemanticMatch(skillText, term)) {
+                semanticMatches++;
+            }
+        }
+        
+        double semanticRatio = (double) semanticMatches / allQueryTerms.size();
+        return semanticRatio > 0.3 ? Math.min(0.75, semanticRatio) : 0.0; // Threshold for semantic matching
+    }
+
+    private double calculateFallbackTextSimilarity(AgentSkillDTO skill, A2ASkillQuery query) {
+        String skillText = buildSearchableText(skill).toLowerCase();
+        List<String> allQueryTerms = extractAllQueryTerms(query);
+        
+        if (allQueryTerms.isEmpty()) return 0.0;
+        
+        // Calculate Jaccard similarity based on word overlap
+        Set<String> skillWords = new HashSet<>(Arrays.asList(skillText.split("\\s+")));
+        Set<String> queryWords = allQueryTerms.stream()
+                .flatMap(term -> Arrays.stream(term.toLowerCase().split("\\s+")))
+                .collect(Collectors.toSet());
+        
+        Set<String> intersection = new HashSet<>(skillWords);
+        intersection.retainAll(queryWords);
+        
+        Set<String> union = new HashSet<>(skillWords);
+        union.addAll(queryWords);
+        
+        double jaccard = union.isEmpty() ? 0.0 : (double) intersection.size() / union.size();
+        
+        // Additional scoring for partial word matches
+        double partialScore = 0.0;
+        for (String queryWord : queryWords) {
+            for (String skillWord : skillWords) {
+                if (skillWord.contains(queryWord) || queryWord.contains(skillWord)) {
+                    partialScore += 0.1;
+                }
+            }
+        }
+        
+        return Math.min(0.6, jaccard + Math.min(0.3, partialScore)); // Cap fallback scores
+    }
+
+    // --- Utility Methods ---
+
+    private boolean hasExactCriteria(A2ASkillQuery query) {
+        return query.getSkillId() != null && !query.getSkillId().trim().isEmpty();
+    }
+
+    private boolean hasDescriptiveText(A2ASkillQuery query) {
+        return (query.getKeywords() != null && query.getKeywords().stream().anyMatch(k -> k.length() > 3)) ||
+               (query.getRequiredTags() != null && query.getRequiredTags().stream().anyMatch(t -> t.length() > 3));
+    }
+
+    private boolean hasAnyTextCriteria(A2ASkillQuery query) {
+        return (query.getKeywords() != null && !query.getKeywords().isEmpty()) ||
+               (query.getRequiredTags() != null && !query.getRequiredTags().isEmpty()) ||
+               (query.getSkillId() != null && !query.getSkillId().trim().isEmpty());
+    }
+
+    private String buildSearchableText(AgentSkillDTO skill) {
+        StringBuilder sb = new StringBuilder();
+        if (skill.getName() != null) sb.append(skill.getName()).append(" ");
+        if (skill.getDescription() != null) sb.append(skill.getDescription()).append(" ");
+        if (skill.getTags() != null) {
+            skill.getTags().forEach(tag -> sb.append(tag).append(" "));
+        }
+        return sb.toString().trim();
+    }
+
+    private List<String> extractAllQueryTerms(A2ASkillQuery query) {
+        List<String> terms = new ArrayList<>();
+        
+        if (query.getSkillId() != null) terms.add(query.getSkillId());
+        if (query.getKeywords() != null) terms.addAll(query.getKeywords());
+        if (query.getRequiredTags() != null) terms.addAll(query.getRequiredTags());
+        
+        return terms.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    private boolean areSemanticallySimilar(String word1, String word2) {
+        word1 = word1.toLowerCase().trim();
+        word2 = word2.toLowerCase().trim();
+        
+        if (word1.equals(word2)) return true;
+        
+        // Check semantic groups
+        for (Set<String> group : SEMANTIC_GROUPS.values()) {
+            if (group.contains(word1) && group.contains(word2)) {
+                return true;
+            }
+        }
+        
+        // Check for common prefixes/suffixes (e.g., "analyze" vs "analysis")
+        return (word1.length() > 4 && word2.length() > 4) &&
+               (word1.startsWith(word2.substring(0, Math.min(4, word2.length()))) ||
+                word2.startsWith(word1.substring(0, Math.min(4, word1.length()))));
+    }
+
+    private boolean containsSemanticMatch(String text, String term) {
+        String lowerText = text.toLowerCase();
+        String lowerTerm = term.toLowerCase();
+        
+        if (lowerText.contains(lowerTerm)) return true;
+        
+        // Check if any word in the text is semantically similar to the term
+        String[] words = lowerText.split("\\s+");
+        return Arrays.stream(words).anyMatch(word -> areSemanticallySimilar(word, lowerTerm));
+    }
+
+    // Helper class to store match results
+    private static class SkillMatchResult {
+        final AgentSkillDTO skill;
+        final double confidence;
+        final List<String> matchReasons;
+        
+        SkillMatchResult(AgentSkillDTO skill, double confidence, List<String> matchReasons) {
+            this.skill = skill;
+            this.confidence = confidence;
+            this.matchReasons = matchReasons;
+        }
+    }
+
+    // Keep existing methods unchanged
     public Mono<Optional<AgentSkillDocument>> findBestAgentForSkill(A2ASkillQuery capabilityQuery) {
         return findAgentsBySkills(capabilityQuery)
                 .map(list -> list.isEmpty() ? Optional.empty() : Optional.of(list.get(0)));
     }
 
     public Mono<SkillInvocationResponse> invokeAgentSkill(SkillInvocationRequest request) {
-        log.info(String.format("(KK) Invoking skill '%s' on agent '%s'", request.getSkillId(), request.getAgentName()));
+        log.info(String.format("Invoking skill '%s' on agent '%s'", request.getSkillId(), request.getAgentName()));
         Optional<AgentEntity> agentOpt = agentRepository.findByName(request.getAgentName());
 
         if (agentOpt.isEmpty()) {
@@ -113,7 +421,7 @@ public class Receptionist {
 
         AgentEntity agent = agentOpt.get();
         SendMessageRequest messageRequest = createMessageRequest(request, agent.getUrl());
-        log.info(String.format("(KK) Sending message to agent %s at %s", agent.getName(), agent.getUrl()));
+        log.info(String.format("Sending message to agent %s at %s", agent.getName(), agent.getUrl()));
         return webClientService.sendMessage(agent.getUrl(), messageRequest)
                 .map(response -> {
                     EventKind eventKind = response.getResult();
@@ -123,7 +431,7 @@ public class Receptionist {
                     }
                     return SkillInvocationResponse.builder()
                             .success(true)
-                            .result(messageResult) // Now pass actual Message result
+                            .result(messageResult)
                             .taskId(messageResult != null ? messageResult.getTaskId() : null)
                             .build();
                 })
@@ -152,25 +460,7 @@ public class Receptionist {
         });
     }
 
-    // --- Private Utility Methods ---
-    private boolean isSkillMatching(AgentSkillDTO skill, A2ASkillQuery query) {
-        if (query.getSkillId() != null && skill.getId().equals(query.getSkillId()))
-            return true;
-
-        if (query.getRequiredTags() != null && !query.getRequiredTags().isEmpty()) {
-            Set<String> tags = skill.getTags() != null ? new HashSet<>(skill.getTags()) : Set.of();
-            if (query.getRequiredTags().stream().anyMatch(tags::contains))
-                return true;
-        }
-
-        if (query.getKeywords() != null && !query.getKeywords().isEmpty()) {
-            String search = (skill.getName() + " " + skill.getDescription()).toLowerCase();
-            return query.getKeywords().stream().anyMatch(k -> search.contains(k.toLowerCase()));
-        }
-
-        return false;
-    }
-
+    // Keep existing utility methods
     private SkillCapability convertToSkillCapability(AgentSkillDTO skill) {
         return SkillCapability.builder()
                 .skillId(skill.getId())
@@ -182,21 +472,7 @@ public class Receptionist {
                 .build();
     }
 
-    private double calculateConfidence(List<SkillCapability> skills, A2ASkillQuery query) {
-        if (skills.isEmpty())
-            return 0.0;
-        double score = 0.5 + skills.size() * 0.1;
-
-        if (query.getSkillId() != null &&
-                skills.stream().anyMatch(s -> s.getSkillId().equals(query.getSkillId())))
-            score += 0.3;
-
-        return Math.min(score, 1.0);
-    }
-
     private SendMessageRequest createMessageRequest(SkillInvocationRequest request, String agentUrl) {
-        // Build parts from input list (ensure non-empty, as Message requires at least
-        // one Part)
         List<Part<?>> parts = Optional.ofNullable(request.getInput())
                 .orElse(List.of())
                 .stream()
@@ -208,12 +484,9 @@ public class Receptionist {
                 .collect(Collectors.toList());
 
         if (parts.isEmpty()) {
-            // Preserve original behavior: send a single empty TextPart when there is no
-            // input
             parts = List.of(new TextPart(""));
         }
 
-        // Merge metadata + include useful routing info
         Map<String, Object> metadata = new HashMap<>();
         if (request.getMetadata() != null) {
             metadata.putAll(request.getMetadata());
@@ -247,5 +520,4 @@ public class Receptionist {
                                 .build())
                         .build());
     }
-
 }
